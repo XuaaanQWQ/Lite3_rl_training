@@ -163,7 +163,7 @@ class Lite3RoughCfgPPO(LeggedRobotCfgPPO):
         run_name = ''
         experiment_name = 'rough_lite3'
         max_iterations = 15000  # number of policy updates
-        resume = True
+        resume = False
         resume_path = 'legged_gym/logs/rough_lite3'  # updated from load_run and chkpt
-        load_run = 'Nov25_21-12-01_' # -1 = last run
+        load_run = '' # -1 = last run
         checkpoint = -1  # -1 = last saved model
