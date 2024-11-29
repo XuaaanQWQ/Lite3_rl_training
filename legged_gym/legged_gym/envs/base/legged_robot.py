@@ -48,7 +48,6 @@ from legged_gym.utils.terrain import Terrain
 from legged_gym.utils.torch_math import quat_apply_yaw, wrap_to_pi
 from legged_gym.utils.helpers import class_to_dict
 from .legged_robot_config import LeggedRobotCfg
-from legged_gym.envs.base.motor_config import MotorControlMode
 import matplotlib
 
 matplotlib.use('Agg')
@@ -196,8 +195,7 @@ class LeggedRobot(BaseTask):
         self.compute_reward()
         env_ids = self.reset_buf.nonzero(as_tuple=False).flatten()
         self.reset_idx(env_ids)
-        self.compute_observations(
-        )  # in some cases a simulation step might be required to refresh some obs (for example body positions)
+        self.compute_observations()  # in some cases a simulation step might be required to refresh some obs (for example body positions)
         if self.num_privileged_obs is not None:
             self.compute_privileged_observations()
         if self.history_update_cnt % self.cfg.normalization.dof_history_interval == 0:

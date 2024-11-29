@@ -57,7 +57,7 @@ class Lite3RoughCfg(LeggedRobotCfg):
 
     class rewards(LeggedRobotCfg.rewards):
         soft_dof_pos_limit = 0.9
-        base_height_target = 0.32
+        base_height_target = 0.36
         still_all = True
         only_positive_rewards = True
         pitch_roll_factor = [1, 1]
@@ -103,7 +103,7 @@ class Lite3RoughCfg(LeggedRobotCfg):
     class commands(LeggedRobotCfg.commands):
         curriculum = False
         fixed_commands = None  # None or [lin_vel_x, lin_vel_y, ang_vel_yaw]
-        resampling_time = 10.  # time before command are changed[s]
+        resampling_time = 6  # time before command are changed[s]
 
         class ranges:
             lin_vel_x = [-1.0, 1.0]  # min max [m/s]
@@ -117,13 +117,13 @@ class Lite3RoughCfg(LeggedRobotCfg):
         random_reset = True
         curriculum = True
         max_init_terrain_level = 2
-        horizontal_scale = 0.05  # [m]
-        vertical_scale = 0.005  # [m]
-        border_size = 5  # [m]
+        # horizontal_scale = 0.05  # [m]
+        # vertical_scale = 0.005  # [m]
+        # border_size = 5  # [m]
         # terrain_length = 8.
         # terrain_width = 8.
-        num_rows = 10  # number of terrain rows (levels)
-        num_cols = 10  # number of terrain cols (types)
+        # num_rows = 10  # number of terrain rows (levels)
+        # num_cols = 10  # number of terrain cols (types)
         # terrain types: [smooth slope, rough slope, stairs up, stairs down, discrete, stepping stones, wave]
         # terrain_proportions = [0.15, 0.15, 0.15, 0.0, 0.2, 0.2, 0.15]
         terrain_proportions = [0.2, 0.2, 0, 0.0, 0.2, 0.2, 0.2]
@@ -132,17 +132,17 @@ class Lite3RoughCfg(LeggedRobotCfg):
 
     class domain_rand(LeggedRobotCfg.domain_rand):
         randomize_friction = True
-        friction_range = [0.5, 1.25]
+        friction_range = [0.1, 1.25]
         randomize_base_mass = True
-        added_mass_range = [-3., 3.]
+        added_mass_range = [-1., 3.]
         randomize_com_offset = True
         com_offset_range = [[-0.05, 0.01], [-0.03, 0.03], [-0.03, 0.03]]
         randomize_motor_strength = True
         motor_strength_range = [0.8, 1.2]
         randomize_Kp_factor = True
-        Kp_factor_range = [0.75, 1.25]
+        Kp_factor_range = [0.8, 1.2]
         randomize_Kd_factor = True
-        Kd_factor_range = [0.5, 1.5]
+        Kd_factor_range = [0.8, 1.2]
 
     # class pmtg(LeggedRobotCfg.pmtg):
     #     gait_type = 'trot'
@@ -162,8 +162,8 @@ class Lite3RoughCfgPPO(LeggedRobotCfgPPO):
     class runner(LeggedRobotCfgPPO.runner):
         run_name = ''
         experiment_name = 'rough_lite3'
-        max_iterations = 12000  # number of policy updates
-        resume = False
+        max_iterations = 15000  # number of policy updates
+        resume = True
         resume_path = 'legged_gym/logs/rough_lite3'  # updated from load_run and chkpt
-        load_run = ''  # -1 = last run
+        load_run = 'Nov25_21-12-01_' # -1 = last run
         checkpoint = -1  # -1 = last saved model

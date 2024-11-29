@@ -93,8 +93,8 @@ class Terrain:
             else:
                 choice = np.random.uniform(0, 1.0)
                 difficulty = np.random.uniform(0, 1.0)
-            print("terrain ({},{})  has choice={:.2f}, difficulty={:.2f}".format(
-                i, j, choice, difficulty))
+            # print("terrain ({},{})  has choice={:.2f}, difficulty={:.2f}".format(
+                # i, j, choice, difficulty))
             terrain = self.make_terrain(choice, difficulty)
             self.add_terrain_to_map(terrain, i, j)
 

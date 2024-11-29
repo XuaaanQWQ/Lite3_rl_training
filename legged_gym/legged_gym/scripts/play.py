@@ -6,7 +6,7 @@ rsl_rl_dir = os.path.join(os.path.dirname(legged_gym_dir), "rsl_rl")
 os.sys.path.insert(0, legged_gym_dir)
 os.sys.path.insert(0, isaacgym_dir)
 os.sys.path.insert(0, rsl_rl_dir)
-
+import isaacgym
 import numpy as np
 import csv
 from legged_gym.utils import get_args, Logger, register
@@ -32,49 +32,49 @@ def play(args):
     # env_cfg.terrain.evaluation_mode = True
 
     # customized terrain mode
-    env_cfg.terrain.selected = True
+    # env_cfg.terrain.selected = True
     # env_cfg.terrain.mesh_type = 'trimesh'
     env_cfg.commands.fixed_commands = [0.8, 0.0, 0.0]
     # env_cfg.viewer.debug_viz = True
-    env_cfg.terrain.terrain_length = 8
-    env_cfg.terrain.terrain_width = 8
-    env_cfg.terrain.num_rows = 6
-    env_cfg.terrain.num_cols = 2
+    # env_cfg.terrain.terrain_length = 8
+    # env_cfg.terrain.terrain_width = 8
+    # env_cfg.terrain.num_rows = 6
+    # env_cfg.terrain.num_cols = 2
     env_cfg.env.episode_length_s = 100
-    env_cfg.terrain.slope_treshold = 0.5  # for stair generation
+    # env_cfg.terrain.slope_treshold = 0.5  # for stair generation
     # env_cfg.terrain.terrain_kwargs = {'type': 'sloped_terrain', 'slope': 0.26}
     # env_cfg.terrain.terrain_kwargs = [{'type': 'slope_platform_stairs_terrain', 'slope': 0.36, 'step_width': 0.2, 'step_height': 0.1, 'num_steps': 5}]
     # env_cfg.terrain.terrain_kwargs = [{'type': 'slope_platform_stairs_terrain', 'slope': 0.36, 'step_width': 0.2, 'step_height': 0.1, 'num_steps': 5},
     #                                   {'type': 'stairs_platform_slope_terrain', 'step_width': 0.2, 'step_height': 0.1, 'num_steps': 5, 'slope': 0.36}]
-    env_cfg.terrain.terrain_kwargs = [{
-        'type': 'pyramid_stairs_terrain',
-        'step_width': 0.3,
-        'step_height': -0.1,
-        'platform_size': 3.
-    }, {
-        'type': 'pyramid_stairs_terrain',
-        'step_width': 0.3,
-        'step_height': 0.1,
-        'platform_size': 3.
-    }, {
-        'type': 'pyramid_sloped_terrain',
-        'slope': 0.26
-    }, {
-        'type': 'discrete_obstacles_terrain',
-        'max_height': 0.10,
-        'min_size': 0.1,
-        'max_size': 0.5,
-        'num_rects': 200
-    }, {
-        'type': 'wave_terrain',
-        'num_waves': 4,
-        'amplitude': 0.15
-    }, {
-        'type': 'stepping_stones_terrain',
-        'stone_size': 0.1,
-        'stone_distance': 0.,
-        'max_height': 0.03
-    }]
+    # env_cfg.terrain.terrain_kwargs = [{
+    #     'type': 'pyramid_stairs_terrain',
+    #     'step_width': 0.3,
+    #     'step_height': -0.1,
+    #     'platform_size': 3.
+    # }, {
+    #     'type': 'pyramid_stairs_terrain',
+    #     'step_width': 0.3,
+    #     'step_height': 0.1,
+    #     'platform_size': 3.
+    # }, {
+    #     'type': 'pyramid_sloped_terrain',
+    #     'slope': 0.26
+    # }, {
+    #     'type': 'discrete_obstacles_terrain',
+    #     'max_height': 0.10,
+    #     'min_size': 0.1,
+    #     'max_size': 0.5,
+    #     'num_rects': 200
+    # }, {
+    #     'type': 'wave_terrain',
+    #     'num_waves': 4,
+    #     'amplitude': 0.15
+    # }, {
+    #     'type': 'stepping_stones_terrain',
+    #     'stone_size': 0.1,
+    #     'stone_distance': 0.,
+    #     'max_height': 0.03
+    # }]
     # prepare environment
     env, _ = task_registry.make_env(name=args.task, args=args, env_cfg=env_cfg)
 
