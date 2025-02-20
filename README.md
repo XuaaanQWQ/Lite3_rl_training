@@ -1,5 +1,7 @@
 # RL-Lite3
 
+[简体中文](./README_ZH.md)
+
 ## Introduction
 A Learning-based locomotion controller for quadruped robots. It includes all components needed for training and hardware deployment on DeepRobotics Lite3.
 ## Software architecture
@@ -51,15 +53,13 @@ You should assign the path of the network model via `--load_run` and `--checkpoi
 
 ### Run controller in the real-world
 
-Copy your policy file to the project [rl_deploy(https://github.com/DeepRoboticsLab/Lite3_rl_deploy.git)],then you can run your reinforcement learning controller in the real world
+Copy your policy file to the project [rl_deploy](https://github.com/DeepRoboticsLab/Lite3_rl_deploy.git),then you can run your reinforcement learning controller in the real world
 
 ## Reference
-[legged_gym] https://github.com/leggedrobotics/legged_gym.git
-[rsl_rl]https://github.com/leggedrobotics/rsl_rl
-[quadruped-robot]https://gitee.com/HUAWEI-ASCEND/quadruped-robot.git
-
-
-
-
-## Communication
-https://www.deeprobotics.cn/robot/index/company.html#maps
+- [legged_gym](https://github.com/leggedrobotics/legged_gym.git)
+- [rsl_rl](https://github.com/leggedrobotics/rsl_rl)
+- [quadruped-robot](https://gitee.com/HUAWEI-ASCEND/quadruped-robot.git)
+  
+  
+  
+[Communication](https://www.deeprobotics.cn/en/index/company.html#maps)
