@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-reward_file = ''
+reward_file = '/home/ysc/myx/Lite3_rl_training/legged_gym/logs/rough_lite3/May12_20-01-24_/rewards.csv'
 
 DT = 0.012 # sim_params.dt * control.decimation
 

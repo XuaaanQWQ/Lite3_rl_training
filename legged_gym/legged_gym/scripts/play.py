@@ -23,7 +23,7 @@ def play(args):
     env_cfg.env.num_envs = 10
 
     env_cfg.viewer.real_time_step = True
-    env_cfg.pmtg.train_mode = False
+    # env_cfg.pmtg.train_mode = False
     # env_cfg.terrain.mesh_type = 'plane'
     env_cfg.terrain.curriculum = False
     env_cfg.noise.add_noise = False
@@ -34,7 +34,7 @@ def play(args):
     # customized terrain mode
     # env_cfg.terrain.selected = True
     # env_cfg.terrain.mesh_type = 'trimesh'
-    env_cfg.commands.fixed_commands = [0.8, 0.0, 0.0]
+    env_cfg.commands.fixed_commands = [0.0, 0.8, 0.0]
     # env_cfg.viewer.debug_viz = True
     # env_cfg.terrain.terrain_length = 8
     # env_cfg.terrain.terrain_width = 8

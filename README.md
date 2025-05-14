@@ -35,6 +35,12 @@ cd rsl_rl
 pip install -e .
 ```
 
+6. Install pandas for visualization
+```
+pip install pandas
+
+```
+
 # Usage
 
 ### Train policy in the simulation

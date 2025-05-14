@@ -153,16 +153,16 @@ class LeggedRobotCfg(BaseConfig):
         bodyCom_offset_mean = [0, 0, 0]
         bodyCom_offset_cov = [0.0, 0.0, 0.0]
 
-    class pmtg:
-        gait_type = 'trot'
-        duty_factor = 0.5
-        base_frequency = 1.5
-        max_clearance = 0.10
-        body_height = 0.28
-        consider_foothold = False
-        z_updown_height_func = ["cubic_up", "cubic_down"]
-        max_horizontal_offset = 0.0
-        train_mode = True
+    # class pmtg:
+    #     gait_type = 'trot'
+    #     duty_factor = 0.5
+    #     base_frequency = 1.5
+    #     max_clearance = 0.10
+    #     body_height = 0.28
+    #     consider_foothold = False
+    #     z_updown_height_func = ["cubic_up", "cubic_down"]
+    #     max_horizontal_offset = 0.0
+    #     train_mode = True
 
     class rewards:
         class scales:

@@ -1403,6 +1403,7 @@ class LeggedRobot(BaseTask):
         heights = torch.min(heights, heights3)
         return heights.view(self.num_envs, -1) * self.terrain.cfg.vertical_scale
 
+
     # ------------ reward functions----------------
     def _reward_lin_vel_z(self):
         # Penalize z axis base linear velocity
@@ -1525,6 +1526,25 @@ class LeggedRobot(BaseTask):
     #     feet_height_error *= is_swing
     #     return torch.sum(torch.abs(feet_height_error.clip(min=0.0)), dim=1)
 
+
+    def _reward_feet_height(self):
+
+        # 获取每只脚当前 z 坐标 (num_envs, num_feet)
+        foot_z = self.rigid_body_state[:, self.feet_indices, 2]
+
+        # 非接触脚：logical_not(contact)，仅奖励抬脚
+        non_contact = ~self.contact_filt  # (num_envs, num_feet)
+
+        # 抬脚目标值（比如超过 5cm 就给奖励）
+        clearance_target = 0.04  # [m]
+
+        # 计算高于目标值的抬脚奖励（只算非接触的脚）
+        reward = (foot_z - clearance_target).clamp(min=0.0) * non_contact.float()
+
+        # 按环境求和
+        return reward.sum(dim=1)
+
+
     def _reward_feet_velocity(self):
         # Penalize feet height error
         foot_v = self.rigid_body_state[:, self.feet_indices, 7:10]
@@ -1545,3 +1565,23 @@ class LeggedRobot(BaseTask):
     def _reward_episode_length(self):
         # print(self.episode_length_buf)
         return 1.0 - torch.exp(-1.0 * self.episode_length_buf / 1500) + 5.0 * self.terrain_levels / self.max_terrain_level
+    
+
+    def _reward_trot_symmetry(self):
+        contacts = self.contact_filt  # (num_envs, 4)
+        LF, RF, LH, RH = contacts[:, 0], contacts[:, 1], contacts[:, 2], contacts[:, 3]
+        pair1 = (LF == RH).float()
+        pair2 = (RF == LH).float()
+
+        symmetry = 0.5 * (pair1 + pair2)
+
+        moving = (torch.norm(self.commands[:, :2], dim=1) > 0.1).float()
+        symmetry *= moving
+
+        return symmetry
+
+    def _reward_step_frequency_penalty(self):
+        # 计算 contact 状态的变化次数（帧间差分）
+        step_change = torch.abs(self.contact_filt.float() - self.last_contacts.float())
+        # 变化次数越多 → 惩罚越大
+        return step_change.sum(dim=1)
