@@ -54,8 +54,8 @@ class PolicyExporter(torch.nn.Module):
 #         return loaded_dict['infos']
 
 if __name__ == '__main__':
-    path = 'your log path'
-    model_name = 'model_13000.pt'
+    path = '/home/ysc/myx/Lite3_rl_training/legged_gym/logs/rough_lite3/Walking_on_plane/'
+    model_name = 'model_5000.pt'
     loaded_dict = torch.load(path + model_name, map_location='cpu')
     actor_critic = ActorCritic(117, # env.num_obs, 
                                54,  # env.num_previleged_obs, 

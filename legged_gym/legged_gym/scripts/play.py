@@ -34,7 +34,7 @@ def play(args):
     # customized terrain mode
     # env_cfg.terrain.selected = True
     # env_cfg.terrain.mesh_type = 'trimesh'
-    env_cfg.commands.fixed_commands = [0.0, 0.8, 0.0]
+    env_cfg.commands.fixed_commands = [0.8, 0.0, 0.0]
     # env_cfg.viewer.debug_viz = True
     # env_cfg.terrain.terrain_length = 8
     # env_cfg.terrain.terrain_width = 8

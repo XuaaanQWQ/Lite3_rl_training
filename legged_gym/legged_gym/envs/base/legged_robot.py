@@ -1114,15 +1114,17 @@ class LeggedRobot(BaseTask):
         self.num_bodies = self.gym.get_asset_rigid_body_count(robot_asset)
         dof_props_asset = self.gym.get_asset_dof_properties(robot_asset)
         rigid_shape_props_asset = self.gym.get_asset_rigid_shape_properties(robot_asset)
-        # print("robot_asset", robot_asset)
-        # rigid_shape_props_asset_names = self.gym.get_asset_rigid_body_shape_indices(robot_asset)
+
+        print("robot_asset", robot_asset)
+        rigid_shape_props_asset_names = self.gym.get_asset_rigid_body_shape_indices(robot_asset)
+
         # save body names from the asset
         body_names = self.gym.get_asset_rigid_body_names(robot_asset)
         self.dof_names = self.gym.get_asset_dof_names(robot_asset)
         self.num_bodies = len(body_names)
         self.num_dofs = len(self.dof_names)
         feet_names = [s for s in body_names if self.cfg.asset.foot_name in s]
-        # shoulder_names = [s for s in body_names if self.cfg.asset.shoulder_name in s]
+        shoulder_names = [s for s in body_names if self.cfg.asset.shoulder_name in s]
         penalized_contact_names = []
         for name in self.cfg.asset.penalize_contacts_on:
             penalized_contact_names.extend([s for s in body_names if name in s])
@@ -1224,11 +1226,14 @@ class LeggedRobot(BaseTask):
         for i in range(len(feet_names)):
             self.feet_indices[i] = self.gym.find_actor_rigid_body_handle(self.envs[0], self.actor_handles[0], feet_names[i])
 
-        # self.shoulder_indices = torch.zeros(len(shoulder_names), dtype=torch.long, device=self.device, requires_grad=False)
-        # for i in range(len(shoulder_names)):
-        #     self.shoulder_indices[i] = self.gym.find_actor_rigid_body_handle(self.envs[0], self.actor_handles[0],
-        #                                                                      shoulder_names[i])
-        # print("self.shoulder_indices = ", self.shoulder_indices)
+
+        # shoulder
+        self.shoulder_indices = torch.zeros(len(shoulder_names), dtype=torch.long, device=self.device, requires_grad=False)
+        for i in range(len(shoulder_names)):
+            self.shoulder_indices[i] = self.gym.find_actor_rigid_body_handle(self.envs[0], self.actor_handles[0],
+                                                                             shoulder_names[i])
+        print("self.shoulder_indices = ", self.shoulder_indices)
+
         self.penalised_contact_indices = torch.zeros(len(penalized_contact_names),
                                                      dtype=torch.long,
                                                      device=self.device,
@@ -1421,16 +1426,42 @@ class LeggedRobot(BaseTask):
 
     def _reward_base_height(self):
         # Penalize base height away from target
-        # # is_stance = ~self.pmtg.is_swing
+
+        # is_stance = ~self.pmtg.is_swing
+        is_stance = self.contact_filt
+        # stance_leg_num = is_stance.sum(dim=1)
+        contact_feet_height = self.rigid_body_state[:, self.feet_indices, 2] * is_stance
+        contact_shoulder_height = self.rigid_body_state[:, self.shoulder_indices, 2] * is_stance
+        # print("contact_feet_height = ", contact_feet_height)
+        # print("contact_shoulder_height = ", contact_shoulder_height)
+
+        
+        contact_leg_height_z = contact_shoulder_height - contact_feet_height
+        rew = torch.sum(torch.abs(self.cfg.rewards.base_height_target - contact_leg_height_z) * is_stance, dim=1)
+        # print("base height rew = ", rew)
+        return rew
+
+        # Use torso height
         # is_stance = self.contact_filt
         # # stance_leg_num = is_stance.sum(dim=1)
+        # torso_height = self.rigid_body_state[:, self.shoulder_indices, 2]   # shape = [num_envs, 1]
+        # torso_height = torso_height.expand(-1, self.feet_indices.shape[0])  # shape = [num_envs, 4]
+        # # print("torso_height = ", torso_height)
+
         # contact_feet_height = self.rigid_body_state[:, self.feet_indices, 2] * is_stance
-        # contact_shoulder_height = self.rigid_body_state[:, self.shoulder_indices, 2] * is_stance
-        # contact_leg_height_z = contact_shoulder_height - contact_feet_height
+
+        # # print("contact_feet_height = ", contact_feet_height)
+        # # print("is_stance = ", is_stance)
+        
+        # contact_leg_height_z = torso_height - contact_feet_height
         # rew = torch.sum(torch.abs(self.cfg.rewards.base_height_target - contact_leg_height_z) * is_stance, dim=1)
-        # return rew
-        base_height = self.root_states[:, 2]
-        return torch.square(base_height - self.cfg.rewards.base_height_target)
+        # # print("base height rew = ", rew)
+
+        return rew
+
+    
+        # base_height = self.root_states[:, 2]
+        # return torch.square(base_height - self.cfg.rewards.base_height_target)
 
     def _reward_torques(self):
         # Penalize torques
@@ -1536,7 +1567,7 @@ class LeggedRobot(BaseTask):
         non_contact = ~self.contact_filt  # (num_envs, num_feet)
 
         # 抬脚目标值（比如超过 5cm 就给奖励）
-        clearance_target = 0.04  # [m]
+        clearance_target = 0.06  # [m]
 
         # 计算高于目标值的抬脚奖励（只算非接触的脚）
         reward = (foot_z - clearance_target).clamp(min=0.0) * non_contact.float()

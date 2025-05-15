@@ -32,7 +32,7 @@ class Lite3RoughCfg(LeggedRobotCfg):
     class control(LeggedRobotCfg.control):
         # PD Drive parameters:
         control_type = 'P'
-        stiffness = {'joint': 17.0}  # 27 20 17 # [N*m/rad]
+        stiffness = {'joint': 20.0}  # 27 20 17 # [N*m/rad]
         damping = {'joint': 0.7}  # 1.0 0.7 [N*m*s/rad]
         # action scale: target angle = actionScale * action + defaultAngle
         action_scale = 0.25
@@ -46,7 +46,7 @@ class Lite3RoughCfg(LeggedRobotCfg):
         file = '{LEGGED_GYM_ROOT_DIR}/resources/robots/lite3/urdf/Lite3.urdf'
         name = "Lite3"
         foot_name = "FOOT"
-        # shoulder_name = "shoulder"
+        shoulder_name = "HIP"  # urdf 里面没shoulder
         # penalize_contacts_on = ["THIGH", "shoulder", "SHANK"]
         penalize_contacts_on = ["THIGH", "SHANK"]
         # terminate_after_contacts_on = ["TORSO", "shoulder"]
@@ -58,30 +58,30 @@ class Lite3RoughCfg(LeggedRobotCfg):
 
     class rewards(LeggedRobotCfg.rewards):
         soft_dof_pos_limit = 0.9
-        base_height_target = 0.32
+        base_height_target = 0.36
         still_all = True
         only_positive_rewards = False
         pitch_roll_factor = [1, 1]
 
         class scales(LeggedRobotCfg.rewards.scales):
-            lin_vel_z = -4.0 # -6.0
-            ang_vel_xy = -0.025 # -1.
-            orientation = -0.5 # -1.0 -7.0
+            lin_vel_z = -2.0 # -4.0
+            ang_vel_xy = -0.05 # -0.025 -0.05
+            orientation = -0.5 # -0.5
             base_height = -1.0 # -1.0
-            torques = -2.5e-5 # -0.0002
-            # dof_vel = -0.0005 # -0.0
+            torques = -2.5e-5 #  -2.5e-5
+            dof_vel = -0.0005 # -0.0
             # torque_limits = -20.0
             # dof_vel_limits = -20.0
-            dof_acc = -1.25e-7 # -2.5e-7  -1.25e-07
-            # action_rate = -0.01 # -0.0
-            # target_smoothness = -0.01 # -0.01
-            # collision = -0.0 # -1.0
-            # termination = -0.0
+            dof_acc = -1.25e-7 # -1.25e-7
+            action_rate = -0.0 # -0.0
+            target_smoothness = -0.01 # -0.01
+            collision = -1.0 # -1.0
+            termination = -1.0
             # power = -2.5e-5
             dof_pos_limits = -10.0 # -10.0
-            tracking_lin_vel = 3.0 # 2.0
-            tracking_ang_vel = 0.9 # 1.0
-            feet_air_time = 1.0 # 1.0
+            tracking_lin_vel = 3.0 # 3.0
+            tracking_ang_vel = 0.9 # 0.9
+            feet_air_time = 2.0 # 1.0
             # stumble = -0.0 # -0.5
             stand_still = -0.3 # -0.3
             # feet_velocity = -0.05 # -0.2
@@ -112,7 +112,7 @@ class Lite3RoughCfg(LeggedRobotCfg):
             height_measurements = 0.0
 
     class commands(LeggedRobotCfg.commands):
-        curriculum = False
+        curriculum = False # False
         fixed_commands = None  # None or [lin_vel_x, lin_vel_y, ang_vel_yaw]
         resampling_time = 6  # time before command are changed[s]
 
@@ -123,7 +123,7 @@ class Lite3RoughCfg(LeggedRobotCfg):
             heading = [-3.14, 3.14]
 
     class terrain(LeggedRobotCfg.terrain):
-        mesh_type = 'plane'  # none, plane, heightfield or trimesh
+        mesh_type = 'trimesh'  # none, plane, heightfield or trimesh
         dummy_normal = True
         random_reset = True
         curriculum = True
@@ -131,12 +131,12 @@ class Lite3RoughCfg(LeggedRobotCfg):
         horizontal_scale = 0.05  # [m]
         vertical_scale = 0.005  # [m]
         border_size = 5  # [m]
-        terrain_length = 8.
-        terrain_width = 8.
-        num_rows = 10  # number of terrain rows (levels)
-        num_cols = 10  # number of terrain cols (types)
-        terrain_type = ['flat', 'rough', 'low_obst', 'high_obst', 'stairs_up', 'stairs_down', 'wave']
-        terrain_proportions = [0.5, 0.5, 0., 0., 0., 0., 0.]  # proportions of each terrain type
+        # terrain_length = 8.
+        # terrain_width = 8.
+        # num_rows = 10  # number of terrain rows (levels)
+        # num_cols = 10  # number of terrain cols (types)
+        # terrain types: [smooth slope, rough slope, stairs up, stairs down, discrete, stepping stones, wave]
+        terrain_proportions = [0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 0.0]  # proportions of each terrain type
         # terrain_types: [smooth slope, rough slope, stairs up, stairs down, discrete, stepping stones, wave]
         # terrain_proportions = [0.15, 0.15, 0.15, 0.0, 0.2, 0.2, 0.15]
         # terrain_proportions = [0.2, 0.2, 0, 0.0, 0.2, 0.2, 0.2]
