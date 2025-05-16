@@ -53,9 +53,6 @@ The project uses the **Isaac Gym** simulator to provide a high-performance envir
 The system involves a total of **four neural networks (MLPs)** throughout training and deployment.  
 These include the core **actor network** and **critic network**, as well as the **environment factor encoder**, which infers environment-specific information from privileged observations, and the **adaptation module**, which replaces the privileged observations during real-world deployment by leveraging historical observations.
 
-The input-output relationships among these four networks are illustrated in the figure below.
-
-
 
 
 ### Network Structure
@@ -138,17 +135,31 @@ The network input is composed of **117 dimensions from the observation** and **1
 The **Environment Factor Encoder** is used to transform the privileged observations into a low-dimensional **environment embedding vector** (latent), which serves as an additional input to the actor network.  
 This enables the policy to generate adaptive actions based on environment-specific features.
 
-[ **privileged_obs (54)** ] → Used only during training  
-         ↓  
-[ **env_factor_encoder (MLP)** ] → Encodes environment characteristics  
-         ↓  
-[ **latent_env_embedding (18D)** ]  
-         ↓  
-[ **obs (117D) + latent (18D)** ] → Concatenated as input  
-         ↓  
-[ **actor MLP** ]  
-         ↓  
-[ **action distribution** ] → Mean and std of joint targets
+    [ **privileged_obs (54)** ] → Used only during training 
+
+                  ↓
+  
+    [ **env_factor_encoder (MLP)** ] → Encodes environment
+
+                  ↓ 
+         
+    [ **latent_env_embedding (18D)** ]  
+
+                  ↓ 
+
+    [ **obs (117D) + latent (18D)** ] → Concatenated as input
+
+                  ↓ 
+
+            [ **actor MLP** ]   
+
+                  ↓ 
+
+    [ **action distribution** ] → Mean and std of joint targets
+
+
+
+
 
 
 Environment Factor Encoder
@@ -255,13 +266,11 @@ While more stable, TRPO still involves complex implementation and high computati
 
 ![alt text](doc/PPO3.png)
 
-For a more in-depth theoretical introduction to PPO, we recommend reading the following article:  
-[https://jonathan-hui.medium.com/rl-proximal-policy-optimization-ppo-explained-77f014ec3f12](https://jonathan-hui.medium.com/rl-proximal-policy-optimization-ppo-explained-77f014ec3f12)
 
 
 ### On Policy Runner
 
-During the entire training process, the **on-policy runner** iteratively updates the parameters of three neural networks — excluding the `env_factor_encoder` — through backpropagation.
+During the entire training process, the **on-policy runner** iteratively updates the parameters of three neural networks — excluding the `env_factor_encoder` — through backpropagation using Adam optimizer.
 
 The parameters of the **env_factor_encoder** remain fixed throughout training. It serves solely as a **teacher network**, providing supervision signals during the training phase.
 

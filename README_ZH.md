@@ -6,18 +6,17 @@
 - [RL-Lite3](#rl-lite3)
   - [简介](#简介)
   - [系统架构](#系统架构)
-    - [Actor 网络](#actor-网络)
-      - [网络结构](#网络结构)
-      - [观测输入（`obs_buf = 117`）](#观测输入obs_buf--117)
-      - [动作输出](#动作输出)
-  - [Critic 网络](#critic-网络)
-      - [网络结构](#网络结构-1)
-      - [特权观测输入（`privileged_obs_buf = 54`）](#特权观测输入privileged_obs_buf--54)
-      - [优势输出](#优势输出)
-  - [PPO（Proximal Policy Optimization）](#ppoproximal-policy-optimization)
-      - [策略梯度](#策略梯度)
-      - [PPO —— Clip 策略更新幅度](#ppo--clip-策略更新幅度)
-      - [On Policy 运行器](#on-policy-运行器)
+  - [Actor 与 Critic 网络](#actor-与-critic-网络)
+    - [网络结构](#网络结构)
+    - [观测输入（`obs_buf = 117`）](#观测输入obs_buf--117)
+    - [特权观测输入（`privileged_obs_buf = 54`）](#特权观测输入privileged_obs_buf--54)
+    - [网络输入](#网络输入)
+      - [环境编码器（Environment Encoder）](#环境编码器environment-encoder)
+    - [网络输出](#网络输出)
+  - [PPO（近端策略优化）](#ppo近端策略优化)
+    - [策略梯度与广义优势估计（GAE）](#策略梯度与广义优势估计gae)
+    - [PPO —— Clip 策略更新幅度](#ppo--clip-策略更新幅度)
+    - [On-Policy Runner](#on-policy-runner)
   - [软件架构](#软件架构)
   - [准备环境](#准备环境)
 - [使用方法](#使用方法)
@@ -41,131 +40,209 @@
 
 项目使用 **Isaac Gym** 仿真器提供高性能交互环境，并通过 `RolloutStorage` 对象缓存和组织交互过程中采集的数据。
 
-### Actor 网络
+## Actor 与 Critic 网络
 
-#### 网络结构
+![网络结构图](doc/Network_architecture.png)
 
-#### 观测输入（`obs_buf = 117`）
+系统从训练到部署一共涉及到 **四个神经网络（MLP）** 的训练和推理部署：
+- 核心的 **Actor 网络** 与 **Critic 网络**，
+- **环境编码器（environment factor encoder）**：用于从特权观测推测环境信息，
+- **自适应模块（adaptation module）**：用于实际部署时通过历史观测替代特权观测以推测环境信息。
 
-| 特征                             | 描述                                         | 维度 |
-|----------------------------------|----------------------------------------------|------|
+
+### 网络结构
+
+**Actor MLP**
+
+| 层索引 | 层类型   | 输入维度 | 输出维度 | 激活函数   |
+|--------|----------|----------|----------|------------|
+| 0      | Linear   | 135      | 512      | –          |
+| 1      | ELU      | –        | –        | α = 1.0    |
+| 2      | Linear   | 512      | 256      | –          |
+| 3      | ELU      | –        | –        | α = 1.0    |
+| 4      | Linear   | 256      | 128      | –          |
+| 5      | ELU      | –        | –        | α = 1.0    |
+| 6      | Linear   | 128      | 12       | –          |
+
+**Critic MLP**
+
+| 层索引 | 层类型   | 输入维度 | 输出维度 | 激活函数   |
+|--------|----------|----------|----------|------------|
+| 0      | Linear   | 135      | 512      | –          |
+| 1      | ELU      | –        | –        | α = 1.0    |
+| 2      | Linear   | 512      | 256      | –          |
+| 3      | ELU      | –        | –        | α = 1.0    |
+| 4      | Linear   | 256      | 128      | –          |
+| 5      | ELU      | –        | –        | α = 1.0    |
+| 6      | Linear   | 128      | 1        | –          |
+
+**注意：** 上述为本项目默认使用的网络结构。根据输入数据和任务需求，网络结构可进行个性化调整以获得最佳性能。
+
+### 观测输入（`obs_buf = 117`）
+
+| 特征名                          | 描述                                          | 维度 |
+|----------------------------------|-----------------------------------------------|------|
 | `commands[:, :3]`               | 期望的 `[x_vel, y_vel, yaw_vel]` 指令        | 3    |
-| `rpy`                           | 基座欧拉角（roll, pitch, yaw）               | 3    |
-| `base_ang_vel`                  | 基座角速度                                   | 3    |
-| `dof_pos`                       | 当前关节位置（12 个自由度）                 | 12   |
-| `dof_vel`                       | 当前关节速度                                 | 12   |
-| `dof_pos_history`              | 过去 3 帧的关节位置                          | 36   |
-| `dof_vel_history`              | 过去 2 帧的关节速度                          | 24   |
-| `action_history`               | 过去 2 帧的动作输出（目标关节位置）         | 24   |
-| **总计**                       |                                              | **117** |
+| `rpy`                           | 基座姿态（roll, pitch, yaw）                 | 3    |
+| `base_ang_vel`                  | 基座角速度                                    | 3    |
+| `dof_pos`                       | 当前关节位置（12 自由度）                   | 12   |
+| `dof_vel`                       | 当前关节速度                                  | 12   |
+| `dof_pos_history`              | 最近 3 帧的关节位置                           | 36   |
+| `dof_vel_history`              | 最近 2 帧的关节速度                           | 24   |
+| `action_history`               | 最近 2 帧的动作输出                           | 24   |
+| **总计**                       |                                               | **117** |
 
-#### 动作输出
+### 特权观测输入（`privileged_obs_buf = 54`）
 
-Actor 网络的输出 `action` 表示期望关节位置的均值 `self.transition.action_mean`，结合 `self.transition.action_sigma`，构成一个期望关节角度的高斯分布。
+| 特征名                      | 描述                                                    | 维度 |
+|-----------------------------|-----------------------------------------------------------|------|
+| `contact_states`           | 足端接触标志（二值）                                     | 4    |
+| `friction_coefficients`    | 每个足底的地面摩擦系数                                   | 4    |
+| `push_forces/torques`      | 作用在 base 上的扰动力与力矩                             | 6    |
+| `mass_payloads`            | 载重扰动                                                  | 1    |
+| `com_displacements`        | 质心偏移                                                   | 3    |
+| `motor_strengths`          | 电机强度扰动（每个关节）                                 | 12   |
+| `Kp_factors`               | 比例增益扰动                                               | 12   |
+| `Kd_factors`               | 微分增益扰动                                               | 12   |
+| **总计**                   |                                                           | **54** |
 
-从该分布中采样得到实际的期望关节角度，然后依据低级控制器的类型（如 PD 控制或力控制）生成关节力矩。
 
-这是一种标准的 **随机策略（Stochastic Policy）** 结构，引入策略采样的随机性以鼓励探索，避免陷入局部最优。
+### 网络输入
 
-## Critic 网络
+在本项目中，**Actor 网络与 Critic 网络的输入相同**，总共由 **135 个维度**组成。  
+其中包括来自观测的 **117 个维度**，以及通过环境编码器（MLP）从特权观测中提取的 **18 维环境 latent 特征**。
 
-#### 网络结构
+#### 环境编码器（Environment Encoder）
 
-#### 特权观测输入（`privileged_obs_buf = 54`）
+**环境编码器（Environment Factor Encoder）** 的作用是将特权观测编码为一个低维的**环境嵌入向量（latent）**，该向量作为额外输入传入 Actor 网络，  
+从而使策略能够根据环境特性生成自适应的动作。
 
-这些观测 **只提供给 critic 网络训练用**，即其输入包含标准观测 `obs_buf = 117` 以及特权观测 `privileged_obs_buf = 54`，共计 `117 + 54 = 171` 个维度。
-
-| 特征                    | 描述                                                   | 维度 |
-|-------------------------|----------------------------------------------------------|------|
-| `contact_states`       | 足端接触标志（二值）                                   | 4    |
-| `friction_coefficients`| 每个足底的地面摩擦系数                                 | 4    |
-| `push_forces/torques`  | 作用在 base 上的外部扰动（力 + 力矩）                 | 6    |
-| `mass_payloads - 6`    | 质量扰动                                               | 1    |
-| `com_displacements`    | 质心偏移                                                | 3    |
-| `motor_strengths - 1`  | 各关节电机增益乘因子                                   | 12   |
-| `Kp_factors - 1`       | 比例增益乘因子                                          | 12   |
-| `Kd_factors - 1`       | 微分增益乘因子                                          | 12   |
-| **总计**               |                                                          | **54** |
-
-#### 优势输出
-
-Critic 网络的输出为 `self.transition.values`，在后续的 PPO 更新过程中用于计算 policy gradient。这部分将在 PPO 和 GAE（广义优势估计）中进一步介绍。
-
-## PPO（Proximal Policy Optimization）
-
-#### 策略梯度
-
-在本项目中，策略是一个神经网络，其训练过程就是优化网络参数以最大化累计奖励：
-
-$$
-\theta^* = \arg\max_\theta\ \mathbb{E}_{\tau \sim p_\theta(\tau)} 
-\left[ \sum_t r(s_t, a_t) \right]
-$$
-
-$$
-\nabla_\theta J(\theta) = \mathbb{E}_{\pi_\theta} \left[ 
-\nabla_\theta \log \pi_\theta(a_t \mid s_t) \cdot \hat{A}_t 
-\right]
-$$
-
-其中 \\( \hat{A}_t \\) 为优势函数。
-
-我们通过对 **总奖励** 取相反数，构造 **代理损失函数（surrogate loss）**，用作训练时的损失函数：
-
-$$
-\text{loss} = -\text{total reward}
-$$
-
-**最小化该 surrogate loss 等价于最大化累计奖励**，从而引导 agent 学习更优策略。
-
-#### PPO —— Clip 策略更新幅度
-
-PPO 的核心是为了解决纯 policy gradient 方法中策略更新不稳定（catastrophic update）的问题。
-
-早期的 **自然策略梯度（Natural Policy Gradient）** 方法提出将策略视为分布，沿着最“自然”的方向更新（即考虑 KL 散度）：
-
-$$
-\max_\theta \nabla_\theta J(\theta) \quad \text{s.t.} \quad D_{\mathrm{KL}}(\pi_{\theta_{\text{old}}} \,\|\, \pi_\theta) \leq \delta
-$$
-
-$$
-\theta_{\text{new}} = \theta_{\text{old}} + \alpha F^{-1} \nabla_\theta J(\theta)
-$$
-
-然而这需要估计或反转 Fisher 信息矩阵，计算代价高。
-
-随后 **TRPO（Trust Region Policy Optimization）** 将其简化为一个带 KL 约束的优化问题：
-
-$$
-\max_\theta\ \hat{\mathbb{E}} \left[ 
-\frac{\pi_\theta(a \mid s)}{\pi_{\theta_{\text{old}}}(a \mid s)} \cdot \hat{A}_t 
-\right]
-\quad \text{s.t.} \quad 
-\hat{\mathbb{E}} \left[ D_{\mathrm{KL}}(\pi_{\theta_{\text{old}}} \,\|\, \pi_\theta) \right] \leq \delta
-$$
-
-PPO 进一步简化了 TRPO，提出了 **Clipped Surrogate Objective**：
-
-$$
-L^{\text{CLIP}}(\theta) = 
-\hat{\mathbb{E}} \left[ 
-\min \left( 
-\frac{\pi_\theta(a_t \mid s_t)}{\pi_{\theta_{\text{old}}}(a_t \mid s_t)} \cdot \hat{A}_t,\ 
-\text{clip} \left( 
-\frac{\pi_\theta(a_t \mid s_t)}{\pi_{\theta_{\text{old}}}(a_t \mid s_t)},\ 
-1 - \epsilon,\ 1 + \epsilon 
-\right) \cdot \hat{A}_t 
-\right) 
-\right]
-$$
-
-推荐阅读：  
-[https://jonathan-hui.medium.com/rl-proximal-policy-optimization-ppo-explained-77f014ec3f12](https://jonathan-hui.medium.com/rl-proximal-policy-optimization-ppo-explained-77f014ec3f12)
-
-#### On Policy 运行器
+[ **privileged_obs (54)** ] → 只在训练是使用
+         ↓  
+[ **env_factor_encoder (MLP)** ] → 编码环境特征
+         ↓  
+[ **latent_env_embedding (18D)** ]  
+         ↓  
+[ **obs (117D) + latent (18D)** ] → 合并为网络输入 
+         ↓  
+[ **actor MLP** ]  
+         ↓  
+[ **action distribution** ] → 输出关节期望位置的均值和方差
 
 
 
+**环境编码器网络结构：**
+
+| 层索引 | 层类型   | 输入维度 | 输出维度 | 激活函数 |
+|--------|----------|----------|----------|----------|
+| 0      | Linear   | 54       | 256      | –        |
+| 1      | ELU      | –        | –        | α = 1.0  |
+| 2      | Linear   | 256      | 128      | –        |
+| 3      | ELU      | –        | –        | α = 1.0  |
+| 4      | Linear   | 128      | 18       | –        |
+
+---
+
+然而，由于在**真实部署（real robot）阶段无法获取 privileged observations**，因此引入了一个额外模块称为 **在线编码器（online encoder 或 adaptation module）**，用于在部署时替代环境编码器的功能。
+
+**Adaptation Module** 以可观测的历史观测序列作为输入。在本项目中，输入为过去 **40 步的 obs 轨迹**，因此输入维度为 **117 × 40 = 4680**。
+
+**自适应模块网络结构：**
+
+| 层索引 | 层类型   | 输入维度 | 输出维度 | 激活函数 |
+|--------|----------|----------|----------|----------|
+| 0      | Linear   | 4680     | 256      | –        |
+| 1      | ELU      | –        | –        | α = 1.0  |
+| 2      | Linear   | 256      | 32       | –        |
+| 3      | ELU      | –        | –        | α = 1.0  |
+| 4      | Linear   | 32       | 18       | –        |
+
+在训练过程中，**Adaptation Module 学习逼近 Environment Encoder 的输出**，从而在测试和部署阶段能够替代其作用。
+
+---
+
+### 网络输出
+
+- Actor 网络的输出为 `self.transition.action_mean`，表示期望关节位置的均值。结合 `self.transition.action_sigma`，构成一个**高斯分布**，从中采样得到实际的关节角度，随后根据低级控制器的类型（如 PD 控制或力控制）计算关节力矩。
+
+- 这种结构属于标准的 **随机策略（stochastic policy）**，引入采样随机性可以鼓励策略探索更多的状态-动作对，避免陷入局部最优。
+
+- Critic 网络的输出为 `self.transition.values`，表示当前状态的价值估计。在后续的 PPO 更新过程中将用于计算策略梯度，相关内容将在 PPO 和 GAE 部分中详细介绍。
+
+
+
+
+## PPO（近端策略优化）
+
+### 策略梯度与广义优势估计（GAE）
+
+在本项目中，策略网络是一个神经网络，其训练过程目标是最大化累计奖励：
+
+![PG1](doc/PG1.png)
+
+![PG2](doc/PG2.png)
+
+其中 \( \hat{A}_t \) 是优势函数，衡量一个动作相比平均动作的好坏程度。在本项目中，优势函数定义如下：
+
+![Advantage](doc/Advantage.png)
+
+其中 \( \delta_t \) 是时间差分误差（TD error）：
+
+![TD](doc/TD.png)
+
+在监督学习中，我们通常构造一个损失函数，通过误差反向传播来更新网络参数。在本项目中，我们构造了一个 **代理损失函数（surrogate loss）**，即总奖励的相反数：
+
+**最小化 surrogate loss 等价于最大化累计奖励**，从而引导 agent 学习更优策略。
+
+---
+
+### PPO —— Clip 策略更新幅度
+
+PPO 的核心思想是解决标准策略梯度算法中策略更新过大带来的策略崩坏问题。
+
+为此，**自然策略梯度（Natural Policy Gradient）** 方法提出将策略视为分布，并考虑新旧策略间的 KL 散度进行约束更新：
+
+![PPO1](doc/PPO1.png)
+
+但由于该方法涉及 Fisher 信息矩阵的估计或求逆，计算成本高。
+
+随后 **TRPO（信赖域策略优化）** 将其简化为 KL 距离约束下的优化问题：
+
+![PPO2](doc/PPO2.png)
+
+尽管稳定性提升，TRPO 计算复杂度仍然偏高，效率较低。
+
+**PPO** 是 TRPO 的进一步简化版本，通过引入 **Clipped Surrogate Objective** 限制策略更新幅度，达到相同目标：
+
+![PPO3](doc/PPO3.png)
+
+相对于TRPO，PPO算法不仅大幅降低了计算复杂度，而且在一些场合甚至实现了更好的性能表现。并且，PPO算法相对其他强化学习算法，鲁棒性（robustness）更高，对超参数变化没那么敏感，调参相对容易，因此成为了当前强化学习控制中最主流的策略优化算法之一。
+
+---
+
+### On-Policy Runner
+
+在整个训练过程中，**On-Policy Runner** 迭代更新三个网络的参数（Actor、Critic、Adaptation Module），通过 Adam 优化器进行误差反向传播。
+
+其中 **Environment Encoder** 的参数保持固定，仅作为 **教师网络（teacher network）** 提供监督信号。
+
+三个网络的损失函数定义如下：
+
+- Actor 网络 surrogate loss：
+
+![SurrogateLoss](doc/surrogateloss.png)
+
+- Critic 网络 value loss：
+
+![ValueLoss](doc/ValueLoss.png)
+
+- Adaptation Module loss（模仿 Environment Encoder 输出）：
+
+![AdaptationLoss](doc/AdaptationLoss.png)
+
+详细实现参见：
+
+`Lite3_rl_training/rsl_rl/rsl_rl/algorithms/ppo.py` → `Update()` 函数
 
 
 
@@ -228,59 +305,6 @@ python3 legged_gym/legged_gym/scripts/play.py --rl_device cuda:0 --sim_device cu
 
 
 
-
-
-<!-- # 算法原理介绍
-
-自从Isaacgym在2021年被发布以来<sup>[1](#ref1)</sup>，基于强化学习的足式机器人运动控制方法受到越来越广泛的关注，并且基于强化学习方法训练出的足式机器人也体现出了十分出色的运动能力和相对于传统基于动力学模型控制方法来说更加出色的泛化性。那么，什么是强化学习？它是如何控制足式机器人的？其背后的算法原理和结构又是怎么样的？ 
-
-## 强化学习基础
-强化学习之父 Richard S. Sutton 在他的强化学习领域的奠基之作 *《Reinforcement Learning: An Introduction》* 中曾说过：
-
-> *“Reinforcement learning is learning what to do — how to map situations to actions — so as to maximize a numerical reward signal.”*
-
-但如果要用一句话介绍强化学习，我还是更喜欢：
-
-> *“Reinforcement Learning is learning from experience.”*
-
-这就像人类幼崽学习行走的过程一样：我们小时候常常在父母的呼唤或远方玩具的诱惑下，一次次摔倒，又一次次站起来，最终学会了走路和奔跑。
-
-一个强化学习的过程就像是对像这种真实决策过程的数学抽象。具体来说，我们通常将强化学习过程建模为一个**马尔可夫决策过程（Markov Decision Process, MDP）**，它包含以下四个基本要素：
-
-- **状态 $S$（观测）**：描述环境当前的情况；
-- **动作 $A$（控制输出）**：agent 可以执行的操作；
-- **奖励 $R$**：agent 执行动作后从环境中获得的反馈；
-- **状态转移函数 $T$**：描述状态在动作下如何转移。
-
-**策略 $π$** 是一个从状态到动作的映射，也就是说，在给定当前状态（或观测）输入的情况下，输出 agent 将采取什么样的动作。
-
-强化学习的目标就是训练出一个最优的策略，在每一个状态下选择最合适的动作与环境交互，从而**最大化长期累积的奖励 $R$**。
-
-
-<p align="center">
-  <img src="./doc/image.png" alt="Robot Diagram" width="400"/>
-  <br>
-  <em>Figure 1: RL Process Diagram.</em>
-</p>
-
-这么说也许有些抽象，还是以小孩学习走路为例。
-
-在这个强化学习（RL）过程中，小孩就是这个 **agent**，他要训练出一个出色的“大脑”（也就是 policy 策略），用来根据他当前对周围环境（**environment**）的感知（**state** 或 **observation**），无论是视觉、听觉还是触觉，来决定接下来的行动（**action**）——比如走路、迈步、转身等。
-
-这个过程的目标是去完成某个任务，从而获得 **奖励（reward）**。这个奖励是环境给的。比如我们常常看到小孩子刚站起来，父母就高兴地鼓掌、亲一口、甚至给块糖吃，这就是环境给予 agent 奖励的过程。
-
-当然，有时 agent（小孩）也会摔倒、撞到东西，摔得屁股疼，这同样也是环境给出的反馈，只不过这个“奖励”是负的。
-
-通过这种方式，agent 就知道了：“我这么做会有奖励，那样做就没有奖励。”于是他会动态地调整 policy 的参数，使得它在给定状态下更倾向于输出那些能获得奖励的动作。
-
-久而久之，在正确的奖励引导下，我们就学会了走路。
-
-## 从Policy Gradient到Proximal Policy Optimization
-
-
-
-
- -->
 
 
 
