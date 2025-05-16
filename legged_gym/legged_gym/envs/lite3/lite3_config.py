@@ -3,22 +3,22 @@ from legged_gym.envs.base.legged_robot_config import LeggedRobotCfg, LeggedRobot
 
 class Lite3RoughCfg(LeggedRobotCfg):
     class init_state(LeggedRobotCfg.init_state):
-        pos = [0.0, 0.0, 0.4]  # x,y,z [m]
+        pos = [0.0, 0.0, 0.42]  # x,y,z [m]
         default_joint_angles = { # = target angles [rad] when action = 0.0
             'FL_HipX_joint': 0.0,   # [rad]
             'HL_HipX_joint': 0.0,   # [rad]
             'FR_HipX_joint': -0.0,  # [rad]
             'HR_HipX_joint': -0.0,   # [rad]
 
-            'FL_HipY_joint': -0.7,     # [rad]
-            'HL_HipY_joint': -0.7,   # [rad] 
-            'FR_HipY_joint': -0.7,     # [rad]
-            'HR_HipY_joint': -0.7,   # [rad]
+            'FL_HipY_joint': -1.5,     # [rad] -0.7 -1.5
+            'HL_HipY_joint': -1.5,   # [rad] 
+            'FR_HipY_joint': -1.5,     # [rad]
+            'HR_HipY_joint': -1.5,   # [rad]
 
-            'FL_Knee_joint': 1.5,   # [rad]
-            'HL_Knee_joint': 1.5,    # [rad]
-            'FR_Knee_joint': 1.5,  # [rad]
-            'HR_Knee_joint': 1.5,    # [rad]
+            'FL_Knee_joint': 2.0,   # [rad]   1.5 2.0
+            'HL_Knee_joint': 2.0,    # [rad]
+            'FR_Knee_joint': 2.0,  # [rad]
+            'HR_Knee_joint': 2.0,    # [rad]
         }
 
     class env(LeggedRobotCfg.env):
@@ -58,36 +58,62 @@ class Lite3RoughCfg(LeggedRobotCfg):
 
     class rewards(LeggedRobotCfg.rewards):
         soft_dof_pos_limit = 0.9
-        base_height_target = 0.36
+        # 0.36
+        base_height_target = 0.30  
         still_all = True
         only_positive_rewards = False
         pitch_roll_factor = [1, 1]
 
         class scales(LeggedRobotCfg.rewards.scales):
-            lin_vel_z = -2.0 # -4.0
-            ang_vel_xy = -0.05 # -0.025 -0.05
-            orientation = -0.5 # -0.5
-            base_height = -1.0 # -1.0
-            torques = -2.5e-5 #  -2.5e-5
-            dof_vel = -0.0005 # -0.0
+            # -4.0
+            lin_vel_z = -2.0 
+            # -0.05 -0.025
+            ang_vel_xy = -0.025 
+            # -0.5
+            orientation = -0.025 
+            # -1.0
+            base_height = -0.3 
+            #  -2.5e-5
+            torques = -2.5e-5 
+            # -0.0005
+            dof_vel = -0.0 
+            
             # torque_limits = -20.0
+            
             # dof_vel_limits = -20.0
-            dof_acc = -1.25e-7 # -1.25e-7
-            action_rate = -0.0 # -0.0
-            target_smoothness = -0.01 # -0.01
-            collision = -1.0 # -1.0
-            termination = -1.0
+            # -1.25e-7
+            dof_acc = -2.5e-7 
+            # -0.0
+            action_rate = -0.0 
+            # -0.01
+            target_smoothness = -0.01 
+            # -1.0
+            collision = -1.5 
+            # -1.0
+            termination = -1.0 
+            
             # power = -2.5e-5
-            dof_pos_limits = -10.0 # -10.0
-            tracking_lin_vel = 3.0 # 3.0
-            tracking_ang_vel = 0.9 # 0.9
-            feet_air_time = 2.0 # 1.0
+            # -10.0
+            dof_pos_limits = -10.0 
+            # 3.0
+            tracking_lin_vel = 3.0 
+            # 0.9
+            tracking_ang_vel = 0.9 
+            # 2.0 
+            feet_air_time = 3.0  
+            
             # stumble = -0.0 # -0.5
-            stand_still = -0.3 # -0.3
+            # -0.2
+            stand_still = -0.1   
+            
             # feet_velocity = -0.05 # -0.2
-            episode_length = 0.1 # 0.1
+            # 0.1
+            episode_length = 0.1 
+            
             # trot_symmetry = 0.005 # 0.05
+            
             # feet_height = 5
+            
             # step_frequency_penalty = -0.01
             
 
@@ -176,7 +202,7 @@ class Lite3RoughCfgPPO(LeggedRobotCfgPPO):
     class runner(LeggedRobotCfgPPO.runner):
         run_name = ''
         experiment_name = 'rough_lite3'
-        max_iterations = 5000  # number of policy updates
+        max_iterations = 10  # number of policy updates
         resume = False
         resume_path = 'legged_gym/logs/rough_lite3'  # updated from load_run and chkpt
         load_run = '' # -1 = last run
