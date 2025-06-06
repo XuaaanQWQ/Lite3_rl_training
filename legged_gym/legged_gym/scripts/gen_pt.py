@@ -54,11 +54,11 @@ class PolicyExporter(torch.nn.Module):
 #         return loaded_dict['infos']
 
 if __name__ == '__main__':
-    path = '/home/ysc/myx/Lite3_rl_training/legged_gym/logs/rough_lite3/Walking_on_plane/'
-    model_name = 'model_5000.pt'
+    path = '/home/ysc/myx/Lite3_rl_training/legged_gym/logs/rough_lite3/May27_17-16-19_/'
+    model_name = 'model_22000.pt'
     loaded_dict = torch.load(path + model_name, map_location='cpu')
     actor_critic = ActorCritic(117, # env.num_obs, 
-                               54,  # env.num_previleged_obs, 
+                               241,  # env.num_previleged_obs, [54, 241]
                                40*117,  # env.num_obs_history, 
                                12,  
                                init_noise_std = 1.0, # check the correctness with that in config file!!
@@ -67,6 +67,8 @@ if __name__ == '__main__':
                                adaptation_hidden_dims = [256, 32],
                                encoder_latent_dims = 18,
                                activation = 'elu').to('cpu')   # env.num_policy_outputs
+
+    
 
     actor_critic.load_state_dict(loaded_dict['model_state_dict'])
     policyExporter = PolicyExporter(actor_critic.adaptation_module, actor_critic.actor)

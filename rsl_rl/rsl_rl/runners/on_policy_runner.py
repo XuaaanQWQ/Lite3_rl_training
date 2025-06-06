@@ -151,6 +151,11 @@ class OnPolicyRunner:
                 self.log(locals())
             if self.save_interval != -1 and it % self.save_interval == 0:
                 self.save(os.path.join(self.log_dir, 'model_{}.pt'.format(it)))
+            # test
+            if self.save_interval != -1 and it == 1:
+                self.save(os.path.join(self.log_dir, 'model_{}.pt'.format(it)))
+                print("test save modal")
+
             if rewbuffer and statistics.mean(rewbuffer) > best_reward:
                 best_reward = statistics.mean(rewbuffer)
                 self.save(os.path.join(self.log_dir, 'model_best.pt'.format(it)))

@@ -58,6 +58,7 @@ class LeggedRobotCfg(BaseConfig):
         restitution = 0.
         # rough terrain only:
         measure_heights = True
+        priv_measure_heights = False  # if True, privileged obs will contain terrain heights
         measured_points_x = [
             -0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1, 0., 0.1, 0.2, 0.3,
             0.4, 0.5, 0.6, 0.7, 0.8
@@ -71,8 +72,8 @@ class LeggedRobotCfg(BaseConfig):
         random_reset = True
         terrain_length = 8.
         terrain_width = 8.
-        num_rows = 10  # number of terrain rows (levels)
-        num_cols = 20  # number of terrain cols (types)
+        num_rows = 5  # number of terrain rows (levels)
+        num_cols = 5  # number of terrain cols (types)
         # terrain types: [smooth slope, rough slope, stairs up, stairs down, discrete]
         terrain_proportions = [0.1, 0.1, 0.35, 0.25, 0.2]
         # trimesh only:
@@ -219,6 +220,7 @@ class LeggedRobotCfg(BaseConfig):
             motor_strength = 5.
             kp_factor = 4.
             kd_factor = 2.
+            priv_height_measurements = 5.0  # scale for privileged height measurements
 
         clip_observations = 100.
         clip_actions = 12.0
@@ -311,7 +313,7 @@ class LeggedRobotCfgPPO(BaseConfig):
         max_iterations = 1500  # number of policy updates
 
         # logging
-        save_interval = 500  # check for potential saves every this many iterations (-1 for only save last result)
+        save_interval = 1000  # check for potential saves every this many iterations (-1 for only save last result)
         experiment_name = 'test'
         run_name = ''
         # load and resume
