@@ -156,7 +156,7 @@ class Terrain:
         stone_distance = 0
         stone_max_height = 0.05 * difficulty
 
-        step_height = 0.02 + 0.10 * difficulty
+        step_height = 0.02 + 0.20 * difficulty
         discrete_obstacles_height = 0.02 + difficulty * 0.1
         stepping_stones_size = 1.5 * (1.05 - difficulty)
 

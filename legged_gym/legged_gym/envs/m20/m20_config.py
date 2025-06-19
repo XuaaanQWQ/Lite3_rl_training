@@ -1,41 +1,52 @@
 from legged_gym.envs.base.legged_robot_config import LeggedRobotCfg, LeggedRobotCfgPPO
 
 
-class Lite3RoughCfg(LeggedRobotCfg):
+class M20RoughCfg(LeggedRobotCfg):
     class init_state(LeggedRobotCfg.init_state):
-        pos = [0.0, 0.0, 0.36]  # x,y,z [m]
+        pos = [0.0, 0.0, 0.55]  # x,y,z [m]    
         default_joint_angles = { # = target angles [rad] when action = 0.0
-            'FL_HipX_joint': -0.1,   # [rad]
-            'HL_HipX_joint': -0.1,   # [rad]
-            'FR_HipX_joint': 0.1,  # [rad]
-            'HR_HipX_joint': 0.1,   # [rad]
+            'FL_HipX_joint': 0.0,   # [rad]
+            'HL_HipX_joint': 0.0,   # [rad]
+            'FR_HipX_joint': -0.0,  # [rad]
+            'HR_HipX_joint': -0.0,   # [rad]
 
-            'FL_HipY_joint': -0.8,     # [rad] -0.7 -1.5
-            'HL_HipY_joint': -0.8,   # [rad] 
-            'FR_HipY_joint': -0.8,     # [rad]
-            'HR_HipY_joint': -0.8,   # [rad]
+            'FL_HipY_joint': -0.7,     # [rad] 
+            'HL_HipY_joint': -0.7,   # [rad] 
+            'FR_HipY_joint': -0.7,     # [rad]
+            'HR_HipY_joint': -0.7,   # [rad]
 
-            'FL_Knee_joint': 1.5,   # [rad]   1.5 2.0
+            'FL_Knee_joint': 1.5,   # [rad]
             'HL_Knee_joint': 1.5,    # [rad]
             'FR_Knee_joint': 1.5,  # [rad]
             'HR_Knee_joint': 1.5,    # [rad]
+            
+            'FL_Wheel_joint': 0,   # [rad]
+            'HL_Wheel_joint': 0,    # [rad]
+            'FR_Wheel_joint': 0,  # [rad]
+            'HR_Wheel_joint': 0,    # [rad]
+            
+            
         }
+        
 
     class env(LeggedRobotCfg.env):
-        num_envs = 12288  # number of parallel environments
-        num_observations = 117  # {133, 320}
-        num_privileged_obs = 241+117  # 54+187=241 if not None a priviledge_obs_buf will be returned by step() (critic obs for assymetric training). None is returned otherwise
+        num_envs = 4096  # number of parallel environments
+        num_observations = 137  # （3+3+3+16+16+16*3+16*2+16*2 = 153）
+        num_privileged_obs = 66  # （4+4+6+1+3+3*16）+ 187
         num_observation_history = 40
-        episode_length_s = 30  # episode length in seconds  # 20
-        curriculum_factor = 0.7  # 0.8
+        num_actions = 16
+        num_policy_outputs = 16
+        episode_length_s = 20  # episode length in seconds
+        curriculum_factor = 0.8
 
     class control(LeggedRobotCfg.control):
         # PD Drive parameters:
         control_type = 'P'
-        stiffness = {'joint': 25.0}  # 27 20 17 # [N*m/rad]
-        damping = {'joint': 0.7}  # 1.0 0.7 [N*m*s/rad]
+        stiffness = {'HipX_joint': 50.0 , 'HipY_joint': 50., 'Knee_joint': 90., 'Wheel_joint': 0}  # 27 20 17 # [N*m/rad]
+        damping = {'HipX_joint': 2.0 , 'HipY_joint': 2., 'Knee_joint': 2., 'Wheel_joint': 2}  # 1.0 0.7 [N*m*s/rad]
         # action scale: target angle = actionScale * action + defaultAngle
         action_scale = 0.25
+        vel_scale = 10.0
         # decimation: Number of control action updates @ sim DT per policy DT
         decimation = 4
         use_torch_vel_estimator = False
@@ -43,12 +54,13 @@ class Lite3RoughCfg(LeggedRobotCfg):
         use_pmtg = False
 
     class asset(LeggedRobotCfg.asset):
-        file = '{LEGGED_GYM_ROOT_DIR}/resources/robots/lite3/urdf/Lite3.urdf'
-        name = "Lite3"
-        foot_name = "FOOT"
+        file = '{LEGGED_GYM_ROOT_DIR}/resources/robots/CA9B/urdf/CA9B_isaacgym.urdf'
+        name = "CA9B"
+        foot_name = "WHEEL"
+        wheel_name = ["FL_Wheel_joint", "FR_Wheel_joint", "HL_Wheel_joint", "HR_Wheel_joint"]
         shoulder_name = "HIP"  # urdf 里面没shoulder
         # penalize_contacts_on = ["THIGH", "shoulder", "SHANK"]
-        penalize_contacts_on = ["THIGH", "SHANK"]
+        penalize_contacts_on = ["THIGH", "SHANK", "HIP"]
         # terminate_after_contacts_on = ["TORSO", "shoulder"]
         terminate_after_contacts_on = ["TORSO"]
         self_collisions = 1  # 1 to disable, 0 to enable...bitwise filter
@@ -58,50 +70,43 @@ class Lite3RoughCfg(LeggedRobotCfg):
 
     class rewards(LeggedRobotCfg.rewards):
         soft_dof_pos_limit = 0.9
-        soft_dof_vel_limit = 1.
+        soft_dof_vel_limit = 0.9
+        tracking_sigma = 0.4
         soft_torque_limit = 1.
-        # 0.36
-        base_height_target = 0.30 
-        still_all = True
+        base_height_target = 0.55  
+        still_all = False
         only_positive_rewards = False
-        pitch_roll_factor = [1, 1] # [pitch, roll] [1, 1]
+        pitch_roll_factor = [1, 1]
         max_contact_force = 100.
-        # feet_height_target = 0.06
-        clearance_height_target = -0.2
+        
 
         class scales(LeggedRobotCfg.rewards.scales):
-            lin_vel_z = -2.0 
-            ang_vel_xy = -0.5 
-            orientation = -5.5
-            base_height = -1.6
+            lin_vel_z = -2. 
+            ang_vel_xy = -0.7 
+            orientation = -6.0 
+            base_height = -1.6 
             torques = -2.5e-5
-            dof_vel = -0.0001
-            torque_limits = -20
-            dof_vel_limits = -20
+            dof_vel = -1e-7 
             dof_acc = -1e-7 
-            action_rate = -0.01   # -0.01
-            target_smoothness = -0.0 # -0.001 
-            collision = -2.0
-            termination = -5
-            power = -2.5e-5
-            dof_pos_limits = -10
-            tracking_lin_vel = 2.5 
-            tracking_ang_vel = 1.2 
-            feet_air_time = 1.2  
-            stumble = -0
-            stand_still = -1.
-            feet_velocity = -0.05
+            action_rate = -0.0002 
+            target_smoothness = -0.01 
+            collision = -0.1 
+            termination = -0.8 
+            dof_pos_limits = -0.
+            tracking_lin_vel = 4.0 
+            tracking_ang_vel = 2.0 
+            stumble = -0.1
+            stand_still = -0.3   
             episode_length = 0.1
-            feet_contact_forces = -0.002
-            foot_clearance = -0.05     # -0.05
-            ground_impact = -0
+            feet_air_time = 2.
+            hip_action_l2 = -0.4
+            wheel_vel_symmetry = -5e-4
 
-        
+
+
     class normalization(LeggedRobotCfg.normalization):
         class obs_scales(LeggedRobotCfg.normalization.obs_scales):
             height_measurements = 0.0
-        class priv_obs_scales(LeggedRobotCfg.normalization.priv_obs_scales):
-            priv_height_measurements = 5.0
 
         dof_history_interval = 1
         clip_angles = [[-0.523, 0.523], [-0.314, 3.6], [-2.792, -0.524]]
@@ -117,19 +122,14 @@ class Lite3RoughCfg(LeggedRobotCfg):
 
     class commands(LeggedRobotCfg.commands):
         curriculum = False # False
+        
         fixed_commands = None  # None or [lin_vel_x, lin_vel_y, ang_vel_yaw]
-        resampling_time = 10  # time before command are changed[s]  6
+        resampling_time = 10  # time before command are changed[s]
 
         class ranges:
-            # lin_vel_x = [-1.0, 1.0]  # min max [m/s]
-            # lin_vel_y = [-1.0, 1.0]  # min max [m/s]
-            # ang_vel_yaw = [-1.0, 1.0]  # min max [rad/s]
-
-            # stairs
-            lin_vel_x = [-0.5, 0.5]  # min max [m/s]
+            lin_vel_x = [-1., 2.0]  # min max [m/s]
             lin_vel_y = [-0.5, 0.5]  # min max [m/s]
             ang_vel_yaw = [-0.5, 0.5]  # min max [rad/s]
-
             heading = [-3.14, 3.14]
 
     class terrain(LeggedRobotCfg.terrain):
@@ -137,13 +137,13 @@ class Lite3RoughCfg(LeggedRobotCfg):
         dummy_normal = True
         random_reset = True
         curriculum = True
-        max_init_terrain_level = 2  # 2
-        horizontal_scale = 0.05  # [m] 0.5
+        max_init_terrain_level = 2
+        horizontal_scale = 0.05  # [m]
         vertical_scale = 0.005  # [m]
         border_size = 5  # [m]
-        terrain_length = 8.
-        terrain_width = 8.
-        num_rows = 12  # number of terrain rows (levels)
+        # terrain_length = 8.
+        # terrain_width = 8.
+        num_rows = 16  # number of terrain rows (levels)
         num_cols = 4  # number of terrain cols (types)
         # terrain types: [smooth slope, rough slope, stairs up, stairs down, discrete, stepping stones, wave]
         terrain_proportions = [0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 0.0]  # proportions of each terrain type
@@ -152,21 +152,20 @@ class Lite3RoughCfg(LeggedRobotCfg):
         # terrain_proportions = [0.2, 0.2, 0, 0.0, 0.2, 0.2, 0.2]
         # rough terrain only:
         measure_heights = False
-        priv_measure_heights = True  # if True, privileged obs will contain terrain heights
 
     class domain_rand(LeggedRobotCfg.domain_rand):
         randomize_friction = True
-        friction_range = [0.2, 1.25]
+        friction_range = [0.1, 1.25]
         randomize_base_mass = True
-        added_mass_range = [-1., 2.]
-        randomize_com_offset = False
-        com_offset_range = [[-0.03, 0.03], [-0.03, 0.03], [-0.03, 0.03]]
+        added_mass_range = [-1., 3.]
+        randomize_com_offset = True
+        com_offset_range = [[-0.05, 0.01], [-0.03, 0.03], [-0.03, 0.03]]
         randomize_motor_strength = True
-        motor_strength_range = [0.9, 1.1]
+        motor_strength_range = [0.8, 1.2]
         randomize_Kp_factor = True
-        Kp_factor_range = [0.9, 1.1]
+        Kp_factor_range = [0.8, 1.2]
         randomize_Kd_factor = True
-        Kd_factor_range = [0.9, 1.1]
+        Kd_factor_range = [0.8, 1.2]
 
     # class pmtg(LeggedRobotCfg.pmtg):
     #     gait_type = 'trot'
@@ -178,7 +177,7 @@ class Lite3RoughCfg(LeggedRobotCfg):
     #     train_mode = True
 
 
-class Lite3RoughCfgPPO(LeggedRobotCfgPPO):
+class M20RoughCfgPPO(LeggedRobotCfgPPO):
 
     class algorithm(LeggedRobotCfgPPO.algorithm):
         entropy_coef = 0.01
@@ -186,9 +185,10 @@ class Lite3RoughCfgPPO(LeggedRobotCfgPPO):
 
     class runner(LeggedRobotCfgPPO.runner):
         run_name = ''
-        experiment_name = 'rough_lite3'
-        max_iterations = 10000  # number of policy updates
+        experiment_name = 'M20'
+        max_iterations = 20000  # number of policy updates
+        save_interval = 1000
         resume = False
-        resume_path = '../../logs/rough_lite3'  # updated from load_run and chkpt
-        load_run = 'May22_14-29-34_' # -1 = last run
-        checkpoint = 'model_20000.pt'  # -1 = last saved model
+        resume_path = 'legged_gym/logs/rough_lite3'  # updated from load_run and chkpt
+        load_run = '' # -1 = last run
+        checkpoint = -1  # -1 = last saved model

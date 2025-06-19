@@ -20,7 +20,7 @@ def play(args):
     register(args.task, task_registry)
     env_cfg, train_cfg = task_registry.get_cfgs(name=args.task)
     # override some parameters for testing
-    env_cfg.env.num_envs = 10
+    env_cfg.env.num_envs = 5
 
     env_cfg.viewer.real_time_step = True
     # env_cfg.pmtg.train_mode = False
@@ -36,7 +36,7 @@ def play(args):
     # env_cfg.terrain.mesh_type = 'trimesh'
     # env_cfg.commands.fixed_commands = [0.8, 0.0, 0.0]
     # for stair x:0.5, y:0.5 
-    env_cfg.commands.fixed_commands = [0.4, 0.0, 0.0]
+    env_cfg.commands.fixed_commands = [1., 0.4, 0.]
 
 
     # env_cfg.viewer.debug_viz = True
